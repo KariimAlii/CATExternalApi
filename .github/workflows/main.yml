@@ -1,1 +1,44 @@
+name: Deploy External Api to Monster Asp
 
+on:
+    push:
+        branches: [ main ]
+
+env:
+    DOTNET_VERSION: '8.0.x'
+    PROJECT_NAME: 'CAT-Project-Demo'
+    PUBLISH_FOLDER: './publish'
+
+jobs:
+    build-and-deploy:
+        runs-on: windows-latest
+
+        steps:
+            - name: Checkout Branch
+              uses: actions/checkout@v4
+
+            # Set up .Net
+            - name: Setup .Net
+              uses: actions/setup-dotnet@v3
+              with:
+                dotnet-version: '8.0'
+            # Restore dependencies
+            - name: Restore dependencies
+              run: dotnet restore
+            # Build the project
+            - name: Build Project
+              run: dotnet build --configuration Release --no-restore
+            # Publish to a folder
+            - name: Publish to a folder
+              run: dotnet publish ./External-API-Integration.csproj -c Release -o ./publish/ --no-build
+            # Copy Publish Packages to Monster Asp (Cloud) using FTP
+            - name: Copy packages to Monster Asp using FTP
+              uses: SamKirkland/FTP-Deploy-Action@v4.3.0
+              with:
+                server: ${{ secrets.FTP_SERVER }}
+                username: ${{ secrets.FTP_USERNAME }}
+                password: ${{ secrets.FTP_PASSWORD }}
+                port: 21
+                local-dir: ./publish/
+                server-dir: ./wwwroot/
+                dangerous-clean-slate: false
